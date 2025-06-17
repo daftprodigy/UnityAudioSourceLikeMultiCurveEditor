@@ -7,7 +7,7 @@ using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEngine;
 
-[CustomEditor(typeof(CameraConfig))]
+[CustomEditor(typeof(TargetObect))]
 [CanEditMultipleObjects]
 internal class CameraConfigInspector : Editor
 {
@@ -40,7 +40,7 @@ internal class CameraConfigInspector : Editor
         FarClip
     }
 
-    private static CameraConfig copied = null;
+    private static TargetObect copied = null;
 
     private class Styles
     {
@@ -132,13 +132,6 @@ internal class CameraConfigInspector : Editor
             return t;
         }
 
-        /// <summary>
-        ///     获取字段
-        /// </summary>
-        /// <typeparam name="T">字段类型</typeparam>
-        /// <param name="className">热更类名，如果有命名空间，需要完整类名</param>
-        /// <param name="fieldName">字段名字</param>
-        /// <returns></returns>
         public static T GetField<T>(object target, string className, string fieldName)
         {
             var classType = GetClassType(className);
@@ -148,13 +141,6 @@ internal class CameraConfigInspector : Editor
             return value;
         }
 
-        /// <summary>
-        ///     设置字段
-        /// </summary>
-        /// <typeparam name="T">字段类型</typeparam>
-        /// <param name="className">热更类名，如果有命名空间，需要完整类名</param>
-        /// <param name="fieldName">字段名字</param>
-        /// <returns></returns>
         public static void SetField<T>(object target, string className, string fieldName, T value)
         {
             var classType = GetClassType(className);
@@ -162,13 +148,6 @@ internal class CameraConfigInspector : Editor
             fieldInfo.SetValue(target, value);
         }
 
-        /// <summary>
-        ///     获取属性
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="className"></param>
-        /// <param name="propertyName"></param>
-        /// <returns></returns>
         public static T GetProperty<T>(object target, string className, string propertyName)
         {
             var classType = GetClassType(className);
@@ -177,14 +156,6 @@ internal class CameraConfigInspector : Editor
             return value;
         }
 
-        /// <summary>
-        ///     设置属性
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="className"></param>
-        /// <param name="propertyName"></param>
-        /// <param name="value"></param>
-        /// <returns></returns>
         public static void SetProperty<T>(object target, string className, string propertyName, T value)
         {
             var classType = GetClassType(className);
@@ -207,7 +178,7 @@ internal class CameraConfigInspector : Editor
     // Callback for Curve Editor to get axis labels
     public Vector2 GetAxisScalars()
     {
-        CameraConfig config = target as CameraConfig;
+        TargetObect config = target as TargetObect;
         m_AudioCurves[1].rangeMin = config.DEFAULT_MIN_SCALE;
         m_AudioCurves[1].rangeMax = config.DEFAULT_MAX_SCALE;
         foreach (var audioCurve in m_AudioCurves)
@@ -239,29 +210,7 @@ internal class CameraConfigInspector : Editor
         DrawCurvs();
 
         serializedObject.ApplyModifiedProperties();
-        
-        GUILayout.BeginHorizontal();
-        if ( GUILayout.Button("重建"))
-        {
-             var c = this.target as CameraConfig;
-             c.RefreshInvertedCurves();
-             EditorUtility.SetDirty(this.target);
-        }
-        if ( GUILayout.Button("拷贝"))
-        {
-            copied = this.target as CameraConfig;
-        }
-        if ( GUILayout.Button("粘贴"))
-        {
-            if (copied != null && target != null)
-            {
-                var oriName = this.target.name;
-                EditorUtility.CopySerialized(copied, this.target);
-                this.target.name = oriName;
-                EditorUtility.SetDirty(this.target);
-            }
-        }
-        GUILayout.EndHorizontal();
+   
     }
 
     private void OnEnable()
@@ -270,12 +219,9 @@ internal class CameraConfigInspector : Editor
         {
             new(CamCurveType.Lod, "Lod", 0, new Color(0.70f, 0.70f, 0.20f, 1.0f), serializedObject.FindProperty("cameraLodCurve"),0,10),
             new(CamCurveType.Scale, "CamScale", 1, new Color(0.90f, 0.30f, 0.20f, 1.0f), serializedObject.FindProperty("cameraScaleCurve"),0,800),
-            new(CamCurveType.Fov, "Fov", 2, new Color(0.25f, 0.70f, 0.20f, 1.0f), serializedObject.FindProperty("cameraFovCurve"),1,120),
-            new(CamCurveType.FarClip, "NearClip", 3, new Color(0.65f, 0.0f, 0.25f, 1.0f), serializedObject.FindProperty("cameraNearClipCurve"),0,200),
-            new(CamCurveType.FarClip, "FarClip", 4, new Color(0.25f, 0.55f, 0.95f, 1.0f), serializedObject.FindProperty("cameraFarClipCurve"),10,1000),
-            new(CamCurveType.FarClip, "XAxisRot", 5, new Color(0.55f, 0.55f, 0.95f, 1.0f), serializedObject.FindProperty("cameraXAxisRotCurve"),0,100)
+ 
         };
-        CameraConfig t = this.target as CameraConfig;
+        TargetObect t = this.target as TargetObect;
         var t_CurveEditorSettings = ReflectionHelper.GetClassType("CurveEditorSettings");
         m_CurveEditorSettings = Activator.CreateInstance(t_CurveEditorSettings);
         SetProperty(m_CurveEditorSettings, "hRangeMin", 0.0f);
@@ -412,12 +358,7 @@ internal class CameraConfigInspector : Editor
 
     private void DrawCurvs()
     {
-        SirenixEditorGUI.InfoMessageBox("横纵都是0~1,其中\n" +
-                                        "1.横坐标取自CameraContext.currentPinchValue - PINCH_MIN_VALUE) / (PINCH_MAX_VALUE - PINCH_MIN_VALUE) \n " +
-                                                            "2.其他几个值分别等于其纵坐标的值(0,1) * 其最大值，每个曲线的最大值选中那条曲线就能看到 ");
-        
-        SirenixEditorGUI.InfoMessageBox($"currentPinchValue: {CameraRunTime.currentPinchValue}");
-        
+    
         var r = GUILayoutUtility.GetAspectRect(1.333f, GUI.skin.textField);
         if (Event.current.type != EventType.Layout && Event.current.type != EventType.Used) SetProperty(m_CurveEditor, "rect", new Rect(r.x, r.y, r.width, r.height));
         // Draw Curve Editor
